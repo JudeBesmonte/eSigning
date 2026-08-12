@@ -1,0 +1,119 @@
+# Quanby-Sign Copilot Instructions
+
+## Project Overview
+
+QuanbySign is a digital document signing platform built with **Next.js 15**, **tRPC**, **Prisma**, **NextAuth**, and **Supabase**. The project uses a feature-driven architecture with role-based access control supporting INDIVIDUAL, BUSINESS, LEGAL_PROFESSIONAL, REGULATORY_BODY, and ADMIN roles.
+
+## Architecture Patterns
+
+### Directory Structure
+
+- `app/` - Next.js App Router pages, layouts, and API routes
+- `features/` - Feature modules (envelope, auth, dashboard, signature-approval, etc.)
+- `core/` - Shared UI components, layouts, hooks, and utilities
+- `services/` - External service integrations (Prisma, tRPC, NextAuth, Supabase)
+- `components/` - Legacy component structure (being migrated to feature modules)
+
+### Feature Module Pattern
+
+Each feature follows this structure:
+
+```
+features/[feature-name]/
+  ├── api/           # tRPC routers and hooks
+  ├── components/    # Feature-specific UI components
+  ├── server/        # Server actions and database operations
+  └── utils/         # Feature utilities
+```
+
+### Database Architecture
+
+The system supports **dual signing flows**:
+
+1. **Legacy envelope-level**: All recipients sign all documents (deprecated)
+2. **Document-level**: Recipients assigned to specific documents (current approach)
+
+Key models: `SignatureEnvelope`, `SignatureDocument`, `SignatureRecipient` with document-level assignments.
+
+## Development Workflows
+
+### Database Operations
+
+```bash
+bun run db:generate    # Generate Prisma client
+bun run db:migrate:dev # Apply dev migrations
+bun run db:push        # Push schema changes
+bun run db:studio      # Open Prisma Studio
+bun run db:seed        # Seed database
+```
+
+### Development Mode
+
+```bash
+npm run dev     # Start dev server with Turbo
+npm run check   # Lint + TypeScript check
+```
+
+### tRPC Integration
+
+- Client setup in `services/trpc/client.tsx`
+- Server setup in `services/trpc/init.ts`
+- Feature routers in `features/*/api/*.router.ts`
+- Schemas in `features/*/api/*.schema.ts`
+- Client hooks in `features/*/api/*.hooks.ts`
+
+## Critical Conventions
+
+### tRPC Patterns
+
+- Use `createTRPCRouter()` for defining routers
+- Use `publicProcedure` for publicly accessible procedures
+- Use `protectedProcedure` for authenticated user procedures
+- Create schemas in `*.schema.ts` files for type safety
+
+### Server Actions Pattern
+
+Always use "use server" directive and auth validation:
+
+```typescript
+export async function actionName() {
+	"use server"
+
+	const session = await auth()
+	if (!session?.user?.id) {
+		throw new Error("Authentication required")
+	}
+	// ... action logic
+}
+```
+
+### Role-Based Authorization
+
+Middleware handles route protection. Check `core/middleware/authorization.ts` for route configurations and `core/lib/nav.config.ts` for role-based navigation.
+
+### Envelope Workflow States
+
+Core envelope states: `DRAFT` → `PUBLISHED` → `COMPLETED` → `PENDING_ADMIN_APPROVAL` → `APPROVED`/`REJECTED`
+
+## Integration Points
+
+### Supabase Storage
+
+- File uploads via `services/supabase/upload.ts`
+- Presigned URLs for secure document access
+- Supabase Signed documents (but not signed by users) storage in `[envelopeId]/unsigned/` prefix
+- User signed document storage in `[envelopeId]/signed/` prefix
+
+### Authentication
+
+- NextAuth with Prisma adapter
+- Credential-based auth with bcrypt password hashing
+- Session extended with user role information
+
+## Common Patterns
+
+- Implement proper error handling with user-friendly messages
+- Follow the document-level assignment pattern for new features
+- Always validate user permissions before data access
+- Use tRPC for type-safe client-server communication
+- Prefer tRPC over REST for any features

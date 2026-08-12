@@ -1,0 +1,55 @@
+name: DB Migrate (Manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Image tag to run migrations from (default: latest)"
+        required: false
+        default: latest
+      dry_run:
+        description: "true => prisma migrate status (no changes)"
+        required: false
+        default: "false"
+
+env:
+  PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+  REGION: ${{ vars.GCP_REGION }}
+  GAR_LOCATION: ${{ vars.GAR_LOCATION }}
+  REPOSITORY: ${{ vars.GAR_REPOSITORY }}
+  SERVICE: ${{ vars.CLOUD_RUN_SERVICE }}
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+    steps:
+      - name: Auth to GCP
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_CREDENTIALS_JSON }}
+
+      - name: Configure Artifact Registry auth
+        run: gcloud auth configure-docker $GAR_LOCATION-docker.pkg.dev --quiet
+
+      - name: Pull image & run migrate/status
+        env:
+          IMAGE_TAG: ${{ github.event.inputs.image_tag }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+          DRY_RUN: ${{ github.event.inputs.dry_run }}
+        run: |
+          IMAGE_REF=${GAR_LOCATION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/${SERVICE}:${IMAGE_TAG}
+          echo "Using image $IMAGE_REF"
+          docker pull "$IMAGE_REF"
+          SCHEMA=./services/prisma/schema.prisma
+          if [ "$DRY_RUN" = "true" ]; then
+            echo "Dry run (status only)";
+            docker run --rm -e DATABASE_URL -e DIRECT_URL "$IMAGE_REF" npx prisma migrate status --schema=$SCHEMA
+          else
+            echo "Applying migrations";
+            docker run --rm -e DATABASE_URL -e DIRECT_URL "$IMAGE_REF" npx prisma migrate deploy --schema=$SCHEMA
+            echo "Status after deploy";
+            docker run --rm -e DATABASE_URL -e DIRECT_URL "$IMAGE_REF" npx prisma migrate status --schema=$SCHEMA
+          fi

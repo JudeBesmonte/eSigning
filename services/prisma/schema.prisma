@@ -1,0 +1,643 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// --- Sample ---
+
+model Post {
+  id        Int      @id @default(autoincrement())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  createdBy   User   @relation(fields: [createdById], references: [id])
+  createdById String
+
+  @@index([name])
+}
+
+// --- Auth ---
+
+enum Role {
+  CLIENT
+  ADMIN
+  SUPER_ADMIN
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  suspendedAt   DateTime?
+  password      String
+  role          Role
+  organization  String?
+  phone         String?
+  image         String?
+  recoveryEmail String?
+
+  accounts Account[]
+  sessions Session[]
+  posts    Post[]
+
+  recipient           Recipient[]
+  envelope            Envelope[]
+  legalRegistration   LegalRegistration?
+  messages            DocumentMessage[] // Messages sent by this user
+  conversationReads   ConversationRead[] // Track which conversations user has read
+  meetings            Meeting[] // Meetings created by this user
+  meetingParticipants MeetingParticipant[] // Meetings this user participates in
+
+  twoFactorEnabled  Boolean      @default(false)
+  notaryBookEntries NotaryBook[]
+
+  // Default signature fields
+  defaultSignature     String?
+  defaultSignatureType String?
+
+  // Notifications
+  notifications Notification[]
+}
+
+model Account {
+  id                       String  @id @default(cuid())
+  userId                   String
+  type                     String
+  provider                 String
+  providerAccountId        String
+  refresh_token            String? // @db.Text
+  access_token             String? // @db.Text
+  expires_at               Int?
+  token_type               String?
+  scope                    String?
+  id_token                 String? // @db.Text
+  session_state            String?
+  user                     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  refresh_token_expires_in Int?
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// --- Notifications ---
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  message   String
+  type      String   // success | error | info | warning
+  link      String?
+  meta      Json?
+  readAt    DateTime?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt])
+  @@index([createdAt])
+}
+
+// Email 2FA verification codes
+model TwoFactorCode {
+  id      String   @id @default(cuid())
+  userId  String
+  code    String
+  expires DateTime
+  used    Boolean  @default(false)
+  purpose String?  @default("TWO_FACTOR") // TWO_FACTOR, PASSWORD_RESET
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([code])
+}
+
+// --- Envelope Models ---
+
+enum EnvelopeStatus {
+  DRAFT
+  PUBLISHED
+  COMPLETED
+  CANCELLED
+  EXPIRED
+  PENDING_APPROVAL
+  APPROVED
+  REJECTED
+}
+
+model Envelope {
+  id          String         @id @default(cuid())
+  token       String         @unique @default(cuid())
+  title       String
+  description String?
+  status      EnvelopeStatus @default(PUBLISHED)
+
+  documents Document[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  createdBy User   @relation(fields: [userId], references: [id])
+  userId    String
+
+  recipient         Recipient[]        @relation("EnvelopeRecipients")
+  auditEvents       AuditEvent[]
+  notaryBookEntries NotaryBook[]
+  messages          DocumentMessage[] // Messages related to this envelope
+  conversationReads ConversationRead[] // Track which conversations user has read
+
+  @@index([status])
+}
+
+model Document {
+  id          String  @id @default(cuid())
+  name        String
+  description String?
+  type        String
+  size        Int
+  path        String
+  sha256Hash  String? // SHA-256 hash for file integrity checking
+
+  unsignedDoc   Document? @relation("DocumentVersions")
+  unsignedDocId String?   @unique
+  signedDoc     Document? @relation("DocumentVersions", fields: [signedDocId], references: [id])
+  signedDocId   String?   @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  envelope   Envelope? @relation(fields: [envelopeId], references: [id])
+  envelopeId String?
+
+  recipients     Recipient[]       @relation("DocumentRecipients")
+  documentFields DocumentField[]   @relation("DocumentFields")
+  auditEvents    AuditEvent[]
+  messages       DocumentMessage[] // Messages related to this document
+}
+
+enum RecipientRole {
+  SIGNER
+  VIEWER
+  APPROVER
+  CC
+}
+
+enum RecipientStatus {
+  PENDING
+  REQUESTED
+  PUBLISHED
+  VIEWED
+  SIGNED
+  DECLINED
+  EXPIRED
+  APPROVED
+  REJECTED
+}
+
+model Recipient {
+  id     String          @id @default(cuid())
+  role   RecipientRole
+  status RecipientStatus
+
+  // For registered users
+  user   User?   @relation(fields: [userId], references: [id])
+  userId String?
+
+  // For non-registered recipients
+  email String?
+  name  String?
+
+  envelope   Envelope? @relation("EnvelopeRecipients", fields: [envelopeId], references: [id])
+  envelopeId String?
+
+  document   Document? @relation("DocumentRecipients", fields: [documentId], references: [id])
+  documentId String?
+
+  // For placeholder assignment
+  placeholderId String?
+
+  auditEvents    AuditEvent[]
+  documentFields DocumentField[] // Fields assigned to this recipient
+
+  @@index([email])
+}
+
+// --- Document Field Positioning ---
+
+enum FieldType {
+  SIGNATURE
+  INITIAL
+  NAME
+  DATE
+  TEXT
+  EMAIL
+  CHECKBOX
+  RADIO
+}
+
+model DocumentField {
+  id          String    @id @default(cuid())
+  type        FieldType
+  label       String
+  placeholder String?
+  required    Boolean   @default(true)
+  options     String[] // For checkbox/radio fields
+
+  // Position and size on the document
+  x          Float
+  y          Float
+  width      Float
+  height     Float
+  pageNumber Int
+
+  // Signature value fields
+  signatureValue String? // The actual signature value (base64 for images, text for typed)
+  signatureType  String? // Type of signature: "draw", "type", "upload"
+  signedAt       DateTime? // When this field was signed
+  ipAddress      String? // IP address for audit trail
+  userAgent      String? // User agent for audit trail
+
+  // Relations
+  document   Document @relation("DocumentFields", fields: [documentId], references: [id], onDelete: Cascade)
+  documentId String
+
+  recipient   Recipient @relation(fields: [recipientId], references: [id], onDelete: Cascade)
+  recipientId String
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([documentId])
+  @@index([recipientId])
+  @@index([type])
+}
+
+// --- Audit Models ---
+
+enum DocumentStatus {
+  PENDING
+  PROCESSING
+  READY
+  SIGNED
+  COMPLETED
+  ERROR
+}
+
+enum AuditEventType {
+  ENVELOPE_CREATED
+  ENVELOPE_PUBLISHED
+  ENVELOPE_VIEWED
+  ENVELOPE_COMPLETED
+  ENVELOPE_CANCELLED
+  ENVELOPE_EXPIRED
+  ENVELOPE_PENDING_APPROVAL
+  ENVELOPE_APPROVED
+  ENVELOPE_REJECTED
+  DOCUMENT_UPLOADED
+  DOCUMENT_VIEWED
+  DOCUMENT_SIGNED
+  DOCUMENT_HASH_RECORDED
+  DOCUMENT_HASH_UPDATED
+  RECIPIENT_ADDED
+  RECIPIENT_REMOVED
+  RECIPIENT_VIEWED
+  RECIPIENT_SIGNED
+  RECIPIENT_DECLINED
+  REMINDER_SENT
+  SETTINGS_UPDATED
+}
+
+model AuditEvent {
+  id          String         @id @default(cuid())
+  eventType   AuditEventType
+  description String
+  timestamp   DateTime       @default(now())
+  userEmail   String?
+  userName    String?
+  ipAddress   String?
+  userAgent   String?
+  metadata    Json?
+
+  // Relations to new models
+  envelopeId  String?
+  documentId  String?
+  recipientId String?
+
+  // Relations
+  envelope  Envelope?  @relation(fields: [envelopeId], references: [id], onDelete: Cascade)
+  document  Document?  @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  recipient Recipient? @relation(fields: [recipientId], references: [id], onDelete: Cascade)
+
+  // Notary Book Relations
+  notaryBookEntries NotaryBook[]
+
+  @@index([envelopeId])
+  @@index([documentId])
+  @@index([recipientId])
+  @@index([eventType])
+  @@index([timestamp])
+}
+
+// --- Notary Book ---
+
+enum NotaryBookEntryType {
+  ENVELOPE
+  AUDIT_EVENT
+  DOCUMENT
+  SIGNATURE
+  NOTARIZATION
+}
+
+model NotaryBook {
+  id          String              @id @default(cuid())
+  entryType   NotaryBookEntryType
+  title       String
+  description String?
+  metadata    Json? // Flexible field for additional data
+
+  // Relations to existing models
+  envelope   Envelope? @relation(fields: [envelopeId], references: [id])
+  envelopeId String?
+
+  auditEvent   AuditEvent? @relation(fields: [auditEventId], references: [id])
+  auditEventId String?     @unique // One-to-one relation with AuditEvent
+
+  // Reference to the user who created this entry
+  createdBy   User   @relation(fields: [createdById], references: [id])
+  createdById String
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  entryDate DateTime @default(now()) // When the entry was originally created
+
+  // Indexes for better query performance
+  @@index([entryType])
+  @@index([envelopeId])
+  @@index([auditEventId])
+  @@index([entryDate])
+  @@index([createdById])
+}
+
+// --- Document Messages ---
+
+enum MessageType {
+  DOCUMENT
+  ENVELOPE
+}
+
+model DocumentMessage {
+  id          String      @id @default(cuid())
+  content     String
+  messageType MessageType @default(DOCUMENT)
+  createdAt   DateTime    @default(now())
+
+  // Relations
+  documentId String?
+  envelopeId String
+  senderId   String
+
+  document Document? @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  envelope Envelope  @relation(fields: [envelopeId], references: [id], onDelete: Cascade)
+  sender   User      @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([documentId])
+  @@index([envelopeId])
+  @@index([senderId])
+  @@index([messageType])
+  @@index([createdAt])
+}
+
+// --- Conversation Read Tracking ---
+
+model ConversationRead {
+  id         String   @id @default(cuid())
+  userId     String
+  envelopeId String
+  readAt     DateTime @default(now())
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  envelope Envelope @relation(fields: [envelopeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, envelopeId])
+  @@index([userId])
+  @@index([envelopeId])
+  @@index([readAt])
+}
+
+// --- Meeting Scheduling ---
+
+enum MeetingType {
+  VIDEO
+  PHONE
+  IN_PERSON
+}
+
+enum MeetingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+  ONGOING
+}
+
+model Meeting {
+  id          String        @id @default(cuid())
+  title       String
+  description String?
+  date        DateTime
+  duration    Int // Duration in minutes
+  type        MeetingType
+  status      MeetingStatus @default(PENDING)
+  document    String? // Document name or ID
+  notes       String?
+  meetingUrl  String? // For video meetings
+  location    String? // For in-person meetings
+
+  // Video SDK fields
+  roomId    String? // Video SDK room ID
+  roomName  String? // Video SDK room name
+  roomToken String? // Video SDK room token (temporary)
+
+  // Meeting timing
+  startedAt DateTime? // When the meeting was started
+  endedAt   DateTime? // When the meeting was ended
+
+  // Recording fields
+  isRecording        Boolean   @default(false)
+  recordingStartedAt DateTime?
+  recordingEndedAt   DateTime?
+  recordingUrl       String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  createdBy   User   @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  createdById String
+
+  participants MeetingParticipant[]
+
+  @@index([createdById])
+  @@index([date])
+  @@index([status])
+  @@index([type])
+  @@index([startedAt])
+}
+
+model MeetingParticipant {
+  id        String @id @default(cuid())
+  meetingId String
+  userId    String
+  role      String @default("PARTICIPANT") // HOST, PARTICIPANT, OBSERVER
+  status    String @default("PENDING") // PENDING, ACCEPTED, DECLINED, JOINED, LEFT
+
+  // Participant timing
+  joinedAt DateTime? // When the participant joined the meeting
+  leftAt   DateTime? // When the participant left the meeting
+
+  meeting Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([meetingId, userId])
+  @@index([meetingId])
+  @@index([userId])
+  @@index([status])
+}
+
+// --- User ID Model ---
+
+model UserIdVerification {
+  id     String @id @default(cuid())
+  userId String @unique
+  idType IdType
+
+  idNumber  String? // The actual ID number/value
+  name      String? // Name on the ID
+  address   String? // Address on the ID
+  birthdate DateTime? // Date of birth in YYYY/MM/DD format
+  expiresAt DateTime? // Expiration date of the ID, if applicable
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// --- Legal Registration Models ---
+enum IdType {
+  PASSPORT
+  DRIVERS_LICENSE
+  PRC_ID // Professional Regulation Commission ID
+  NBI_CLEARANCE // National Bureau of Investigation clearance
+  POLICE_CLEARANCE
+  POSTAL_ID // Philippine Postal Corporation Postal ID
+  VOTERS_ID
+  VOTERS_CERTIFICATION
+  GSIS_E_CARD // Government Service Insurance System e-card
+  SSS_CARD // Social Security System card
+  PHILHEALTH_CARD // Philippine Health Insurance Corporation card
+  SENIOR_CITIZEN_ID
+  SENIOR_CITIZEN_BOOKLET
+  OWWA_ID // Overseas Workers Welfare Administration ID
+  OFW_ID // Overseas Filipino Worker ID
+  SEAMANS_BOOK
+  ACR_ICR // Alien Certificate of Registration/Immigrant Certificate of Registration
+  GOVERNMENT_OFFICE_ID
+  NCWDP_CERTIFICATION // National Council for the Welfare of Disabled Persons certification
+  PWD_ID // Persons with Disability ID
+  PWD_BOOKLET // Persons with Disability booklet
+  DSWD_CERTIFICATION // Department of Social Welfare and Development certification
+  SOLO_PARENT_ID
+  TIN_ID // Tax Identification Number ID
+  UMID // Unified Multi-Purpose ID card aka National ID
+  BARANGAY_ID // Residency ID from local government unit
+  OTHER_LGU_ID // Other local government unit ID
+}
+
+enum LegalApplicationStatus {
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+}
+
+model LegalRegistration {
+  id          String                 @id @default(cuid())
+  applicantId String                 @unique
+  status      LegalApplicationStatus @default(DRAFT)
+
+  // Personal Qualifications
+  citizenship                  String
+  dateOfBirth                  DateTime
+  residentialAddress           String
+  workOrBusinessAddress        String
+  telephoneNumber              String?
+  mobileNumber                 String
+  emailAddress                 String
+  professionalTaxReceiptNumber String
+  rollOfAttorneysNumber        String
+  ibpMembershipNumber          String
+  mcleComplianceNumber         String
+  ulasComplianceNumber         String
+
+  // Required Documents (file references)
+  obcCertificationUrl         String
+  ibpCertificationUrl         String
+  passportPhotoUrl            String
+  paymentProofUrl             String
+  enfProviderCertificationUrl String
+
+  // Undertakings
+  undertakingElectronicNotarialActs Boolean @default(false)
+  undertakingDataSharingGuidelines  Boolean @default(false)
+
+  // Electronic Signature
+  electronicSignatureApplied Boolean @default(false)
+  electronicSignatureUrl     String?
+
+  // Timestamps
+  submittedAt DateTime?
+  reviewedAt  DateTime?
+  approvedAt  DateTime?
+  rejectedAt  DateTime?
+
+  // Review information
+  reviewedBy String?
+  remarks    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  applicant User @relation(fields: [applicantId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@index([applicantId])
+}

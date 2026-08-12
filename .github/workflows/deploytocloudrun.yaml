@@ -1,0 +1,138 @@
+name: Build and Deploy Node App to Cloud Run
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches:
+      - production-lite
+  pull_request:
+    types: [closed]
+    branches:
+      - production-lite
+
+env:
+  CONTAINER_PORT: ${{ vars.CONTAINER_PORT }}
+  GAR_LOCATION: ${{ vars.GAR_LOCATION }}
+  GCP_CREDENTIALS_JSON: ${{ secrets.GCP_CREDENTIALS_JSON }}
+  PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+  REGION: ${{ vars.GCP_REGION }}
+  REPOSITORY: ${{ vars.GAR_REPOSITORY }}
+  SERVICE: ${{ vars.CLOUD_RUN_SERVICE }}
+
+jobs:
+  deploy:
+    environment: production-lite
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/production-lite') ||
+      (github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true && github.event.pull_request.head.ref == 'dev-lite')
+    permissions:
+      contents: "read"
+      id-token: "write"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Authenticate with GCP
+        uses: google-github-actions/auth@v2
+        with:
+          token_format: "access_token"
+          credentials_json: "${{ secrets.GCP_CREDENTIALS_JSON }}"
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${GAR_LOCATION}-docker.pkg.dev --quiet
+
+      - name: Check and Create Artifact Registry Repository if not exists
+        run: |
+          if ! gcloud artifacts repositories describe $REPOSITORY \
+            --location=$GAR_LOCATION \
+            --project=$PROJECT_ID > /dev/null 2>&1; then
+            echo "Artifact Registry $REPOSITORY not found. Creating..."
+            gcloud artifacts repositories create $REPOSITORY \
+              --repository-format=docker \
+              --location=$GAR_LOCATION \
+              --description="Docker repository for $REPOSITORY"
+          else
+            echo "Artifact Registry $REPOSITORY already exists."
+          fi
+
+      - name: Build and Push Container
+        run: |
+          docker build \
+            --build-arg AUTH_SECRET="${{ secrets.AUTH_SECRET }}" \
+            --build-arg AUTH_URL="${{ secrets.AUTH_URL }}" \
+            --build-arg DATABASE_URL="${{ secrets.DATABASE_URL }}" \
+            --build-arg DIRECT_URL="${{ secrets.DIRECT_URL }}" \
+            --build-arg EMAIL_FROM_NAME="${{ secrets.EMAIL_FROM_NAME }}" \
+            --build-arg EMAIL_FROM="${{ secrets.EMAIL_FROM }}" \
+            --build-arg EMAIL_HOST="${{ secrets.EMAIL_HOST }}" \
+            --build-arg EMAIL_PASS="${{ secrets.EMAIL_PASS }}" \
+            --build-arg EMAIL_PORT="${{ secrets.EMAIL_PORT }}" \
+            --build-arg EMAIL_USER="${{ secrets.EMAIL_USER }}" \
+            --build-arg MISTRAL_API_KEY="${{ secrets.MISTRAL_API_KEY }}" \
+            --build-arg NEXT_PUBLIC_SUPABASE_ANON_KEY="${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}" \
+            --build-arg NEXT_PUBLIC_SUPABASE_URL="${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}" \
+            --build-arg SUPABASE_SERVICE_ROLE_KEY="${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+            --build-arg VIDEO_SDK_API_KEY="${{ secrets.VIDEO_SDK_API_KEY }}" \
+            --build-arg VIDEO_SDK_SECRET="${{ secrets.VIDEO_SDK_SECRET }}" \
+            -t "${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE }}:${{ github.sha }}" .
+
+          docker push "${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE }}:${{ github.sha }}"
+
+      - name: Create Cloud Run service if not exists
+        run: |
+          if ! gcloud run services describe $SERVICE --region=$REGION --format="value(status.url)" 2>/dev/null; then
+            echo "Creating Cloud Run service $SERVICE..."
+            gcloud run deploy $SERVICE \
+              --image="${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE }}:${{ github.sha }}" \
+              --region=$REGION \
+              --platform=managed \
+              --port=$CONTAINER_PORT \
+              --allow-unauthenticated
+          else
+            echo "Cloud Run service $SERVICE already exists."
+          fi
+
+      - name: Deploy to Cloud Run
+        id: deploy
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: ${{ env.SERVICE }}
+          region: ${{ env.REGION }}
+          image: ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE }}:${{ github.sha }}
+          env_vars: |
+            NODE_ENV=production
+            AUTH_TRUST_HOST=true
+            AUTH_SECRET=${{ secrets.AUTH_SECRET }}
+            AUTH_URL=${{ secrets.AUTH_URL }}
+            DATABASE_URL=${{ secrets.DATABASE_URL }}
+            DIRECT_URL=${{ secrets.DIRECT_URL }}
+            EMAIL_FROM_NAME="${{ secrets.EMAIL_FROM_NAME }}"
+            EMAIL_FROM="${{ secrets.EMAIL_FROM }}"
+            EMAIL_HOST="${{ secrets.EMAIL_HOST }}"
+            EMAIL_PASS="${{ secrets.EMAIL_PASS }}"
+            EMAIL_PORT="${{ secrets.EMAIL_PORT }}"
+            EMAIL_USER="${{ secrets.EMAIL_USER }}"
+            MISTRAL_API_KEY="${{ secrets.MISTRAL_API_KEY }}"
+            NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+            NEXT_PUBLIC_SUPABASE_URL=${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+            SUPABASE_SERVICE_ROLE_KEY=${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+            VIDEO_SDK_API_KEY="${{ secrets.VIDEO_SDK_API_KEY }}"
+            VIDEO_SDK_SECRET="${{ secrets.VIDEO_SDK_SECRET }}"
+            SKIP_ENV_VALIDATION=1
+
+          flags: >
+            --min-instances=0
+            --max-instances=50
+            --memory=2Gi
+            --cpu=1
+
+      - name: Show Output
+        run: echo ${{ steps.deploy.outputs.url }}

@@ -1,0 +1,75 @@
+services:
+  # Next.js Application (Production Build)
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        AUTH_SECRET: ${AUTH_SECRET}
+        AUTH_URL: ${AUTH_URL}
+        DATABASE_URL: ${DATABASE_URL}
+        DIRECT_URL: ${DIRECT_URL}
+        EMAIL_FROM: ${EMAIL_FROM}
+        EMAIL_FROM_NAME: ${EMAIL_FROM_NAME}
+        EMAIL_HOST: ${EMAIL_HOST}
+        EMAIL_PASS: ${EMAIL_PASS}
+        EMAIL_PORT: ${EMAIL_PORT}
+        EMAIL_USER: ${EMAIL_USER}
+        MISTRAL_API_KEY: ${MISTRAL_API_KEY}
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+        NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
+        VIDEO_SDK_API_KEY: ${VIDEO_SDK_API_KEY}
+        VIDEO_SDK_SECRET: ${VIDEO_SDK_SECRET}
+    container_name: quanby-sign-app
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - AUTH_TRUST_HOST=true
+      - AUTH_SECRET=${AUTH_SECRET}
+      - AUTH_URL=${AUTH_URL}
+      - DATABASE_URL=${DATABASE_URL}
+      - DIRECT_URL=${DIRECT_URL}
+      - EMAIL_FROM=${EMAIL_FROM}
+      - EMAIL_FROM_NAME=${EMAIL_FROM_NAME}
+      - EMAIL_HOST=${EMAIL_HOST}
+      - EMAIL_PASS=${EMAIL_PASS}
+      - EMAIL_PORT=${EMAIL_PORT}
+      - EMAIL_USER=${EMAIL_USER}
+      - MISTRAL_API_KEY=${MISTRAL_API_KEY}
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+      - VIDEO_SDK_API_KEY=${VIDEO_SDK_API_KEY}
+      - VIDEO_SDK_SECRET=${VIDEO_SDK_SECRET}
+      - SKIP_ENV_VALIDATION=1
+
+  # Development version (no Docker build, faster iteration)
+  app-dev:
+    image: node:20-alpine
+    container_name: quanby-sign-dev
+    working_dir: /app
+    ports:
+      - "3001:3000"
+    environment:
+      - NODE_ENV=development
+      - AUTH_SECRET=${AUTH_SECRET}
+      - AUTH_URL=http://localhost:3001
+      - DATABASE_URL=${DATABASE_URL}
+      - DIRECT_URL=${DIRECT_URL}
+      - EMAIL_FROM=${EMAIL_FROM}
+      - EMAIL_FROM_NAME=${EMAIL_FROM_NAME}
+      - EMAIL_HOST=${EMAIL_HOST}
+      - EMAIL_PASS=${EMAIL_PASS}
+      - EMAIL_PORT=${EMAIL_PORT}
+      - EMAIL_USER=${EMAIL_USER}
+      - MISTRAL_API_KEY=${MISTRAL_API_KEY}
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+      - VIDEO_SDK_API_KEY=${VIDEO_SDK_API_KEY}
+      - VIDEO_SDK_SECRET=${VIDEO_SDK_SECRET}
+    volumes:
+      - .:/app
+      - /app/node_modules
+    command: sh -c "corepack enable pnpm && pnpm install && pnpm db:generate && pnpm dev"
+    profiles:
+      - dev
