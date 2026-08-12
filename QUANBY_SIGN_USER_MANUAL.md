@@ -1,8 +1,8 @@
-# Quanby Sign - User Manual
+# E Sign - User Manual
 
-## Welcome to Quanby Sign
+## Welcome
 
-Quanby Sign is a secure digital signature platform that makes document signing fast, easy, and legally binding. This guide will walk you through how to use our platform as either a document sender (requester) or a document signer.
+E-Sign System is a secure digital signature platform that makes document signing fast, easy, and legally binding. This guide will walk you through how to use our platform as either a document sender (requester) or a document signer.
 
 ---
 
@@ -48,7 +48,7 @@ Quanby Sign is a secure digital signature platform that makes document signing f
 
 ## Understanding Your Role
 
-In Quanby Sign, you can be both a **requester** and a **signer** depending on the situation:
+In E-Sign System, you can be both a **requester** and a **signer** depending on the situation:
 
 - **As a Requester**: When you create an envelope and send documents for others to sign
 - **As a Signer**: When someone sends you documents to sign
@@ -331,14 +331,3 @@ flowchart TD
 - **Save invite links** for future reference
 
 ---
-
-## Why Choose Quanby Sign?
-
-- **Fast**: Complete document signing in minutes, not days
-- **Secure**: Bank-level security protects your information
-- **Legal**: All signatures are legally binding and admissible
-- **Easy**: Simple interface that anyone can use
-- **Reliable**: 99.9% uptime with automatic backups
-- **Compliant**: Meets all major legal and industry standards
-
-Start using Quanby Sign today and experience the future of document signing!
