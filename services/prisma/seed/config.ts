@@ -14,35 +14,35 @@ export const SEED_RANGES = {
 	CLIENT: [10, 20]
 } as const
 
-export const EMAIL_DOMAIN = "@quanby.com"
+export const EMAIL_DOMAIN = "@email.com"
 export const DEFAULT_PASSWORD = "asdfasdf"
 
 // Test accounts with predefined data
 export const TEST_ACCOUNTS = {
 	// Client Account
-	"client@quanby.com": {
-		email: "client@quanby.com",
+	"client@email.com": {
+		email: "client@email.com",
 		name: "Sarah Johnson",
 		role: "CLIENT" as const,
 		emailVerified: new Date()
 	},
 	// Another Client Account
-	"john@quanby.com": {
-		email: "john@quanby.com",
+	"john@email.com": {
+		email: "john@email.com",
 		name: "John Smith",
 		role: "CLIENT" as const,
 		emailVerified: new Date()
 	},
 	// Admin Account
-	"admin@quanby.com": {
-		email: "admin@quanby.com",
+	"admin@email.com": {
+		email: "admin@email.com",
 		name: "Michael Chen",
 		role: "ADMIN" as const,
 		emailVerified: new Date()
 	},
 	// Super Admin Account
-	"superadmin@quanby.com": {
-		email: "superadmin@quanby.com",
+	"superadmin@email.com": {
+		email: "superadmin@email.com",
 		name: "Emily Davis",
 		role: "SUPER_ADMIN" as const,
 		emailVerified: new Date()
