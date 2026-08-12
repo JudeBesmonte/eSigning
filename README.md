@@ -1,4 +1,4 @@
-# Quanby Sign
+# E Sign
 
 Send, sign, and track documents securely with role‑based access for every stakeholder. Approvals, guided eSigning, and an audit‑ready history—all in one place.
 
@@ -46,7 +46,7 @@ Send, sign, and track documents securely with role‑based access for every stak
    pnpm dev
    ```
 
-## 🏗️ Project Structure & House Rules
+## Project Structure & House Rules
 
 > **IMPORTANT:** Follow these conventions for consistent codebase
 
