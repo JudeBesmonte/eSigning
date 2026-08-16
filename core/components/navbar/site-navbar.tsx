@@ -89,7 +89,7 @@ export function SiteNavbar({ items }: SiteNavbarProps) {
 						<div className="flex gap-x-2">
 							<QuanbyLogo className="size-6 shrink-0" />
 							<span className="bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-lg font-bold leading-tight tracking-tight text-transparent">
-								QSign
+								SnapSeal
 							</span>
 						</div>
 					</Link>
@@ -140,10 +140,10 @@ export function SiteNavbar({ items }: SiteNavbarProps) {
 								<SheetHeader>
 									<SheetTitle className="flex items-center gap-2">
 										<QuanbyLogo className="size-5" />
-										QSign
-									</SheetTitle>
-									<SheetDescription>
-										Navigate through your QSign workspace
+									SnapSeal
+								</SheetTitle>
+								<SheetDescription>
+									Navigate through your SnapSeal workspace
 									</SheetDescription>
 								</SheetHeader>
 
