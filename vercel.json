@@ -1,0 +1,27 @@
+{
+    "services": {
+        "frontend": {
+            "root": ".",
+            "framework": "nextjs"
+        },
+        "trpc": {
+            "root": "services/trpc"
+        }
+    },
+    "rewrites": [
+        {
+            "source": "/api/trpc(/.*)?",
+            "destination": {
+                "type": "service",
+                "service": "trpc"
+            }
+        },
+        {
+            "source": "/(.*)",
+            "destination": {
+                "type": "service",
+                "service": "frontend"
+            }
+        }
+    ]
+}
