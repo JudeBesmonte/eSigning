@@ -10,6 +10,7 @@ import {
 	SettingsIcon,
 	Trash2Icon
 } from "lucide-react"
+import { useSession } from "next-auth/react"
 
 import { buttonVariants } from "@/core/components/ui/button"
 import {
@@ -32,14 +33,21 @@ import { cn } from "@/core/lib/utils"
 import { trpc } from "@/services/trpc/client"
 
 export function NotificationPopover() {
+	const { status } = useSession()
+	const isAuthenticated = status === "authenticated"
 	const utils = trpc.useUtils()
 	const { data: notifications = [] } = trpc.notifications.list.useQuery(
 		undefined,
-		{ refetchInterval: 10_000, staleTime: 5_000 }
+		{
+			enabled: isAuthenticated,
+			refetchInterval: 10_000,
+			staleTime: 5_000
+		}
 	)
 
 	// Live updates via subscription + background polling fallback
 	trpc.notifications.subscribe.useSubscription(undefined, {
+		enabled: isAuthenticated,
 		onData: () => {
 			void utils.notifications.list.invalidate()
 			void utils.notifications.unreadCount.invalidate()

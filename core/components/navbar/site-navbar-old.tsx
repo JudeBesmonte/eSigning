@@ -97,7 +97,7 @@ function NavbarContent({
 						<QuanbyLogo className="!size-8" />
 					</div>
 					<span className="bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-xl font-bold leading-tight tracking-tight text-transparent">
-						QSign Lite
+						E-Signing
 					</span>
 				</Link>
 			</div>

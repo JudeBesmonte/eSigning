@@ -3,11 +3,11 @@
 
 <!-- Source: .ruler/project-rules.md -->
 
-# Quanby Sign - Global AI Agent Rules
+# E-Sign System - Global AI Agent Rules
 
 ## Project Overview
 
-Quanby Sign is a secure document signing platform built with **Next.js 15**, **tRPC**, **Drizzle ORM**, **NextAuth**, and **Supabase**. It provides role-based access control, guided eSigning, approvals, and audit-ready history for stakeholders including individuals, businesses, legal teams, regulators, and admins.
+E-Sign System is a secure document signing platform built with **Next.js 15**, **tRPC**, **Drizzle ORM**, **NextAuth**, and **Supabase**. It provides role-based access control, guided eSigning, approvals, and audit-ready history for stakeholders including individuals, businesses, legal teams, regulators, and admins.
 
 ## Technology Stack
 

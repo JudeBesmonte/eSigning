@@ -8,7 +8,7 @@ export const QuanbyLogo: React.FC<React.SVGProps<SVGSVGElement>> = ({
 }) => (
 	<Image
 		src="/qsign.logo.png"
-		alt="Logo"
+		alt="E-Signing Logo"
 		className={cn(className)}
 		fill={false}
 		width={64}
@@ -27,7 +27,7 @@ export const QuanbyLogoText: React.FC<React.SVGProps<SVGSVGElement>> = ({
 }) => (
 	<Image
 		src="/qsign.logo.text.png"
-		alt="Logo"
+		alt="E-Signing Logo"
 		className={cn(className)}
 		fill={false}
 		width={64}

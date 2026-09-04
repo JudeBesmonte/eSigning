@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { AlertTriangle, Bell, CheckCircle2, Info } from "lucide-react"
 import { motion } from "motion/react"
+import { useSession } from "next-auth/react"
 
 import { Button } from "@/core/components/ui/button"
 import { Card, CardContent } from "@/core/components/ui/card"
@@ -71,9 +72,13 @@ function ElegantShape({
 }
 
 export default function NotificationsPage() {
+	const { status } = useSession()
+	const isAuthenticated = status === "authenticated"
 	const [filter, setFilter] = useState<"all" | "unread" | "read">("all")
 	const { data: notifications = [], refetch } =
-		trpc.notifications.list.useQuery()
+		trpc.notifications.list.useQuery(undefined, {
+			enabled: isAuthenticated
+		})
 	const markAll = trpc.notifications.markAllAsRead.useMutation({
 		onSuccess: () => refetch()
 	})

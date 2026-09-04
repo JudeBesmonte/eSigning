@@ -141,7 +141,7 @@ function NavbarContent({
 					<QuanbyLogo className="!size-8" />
 
 					<span className="bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-xl font-bold leading-tight tracking-tight text-transparent">
-						QSign
+						E-Signing
 					</span>
 				</Link>
 			</motion.div>
@@ -219,9 +219,16 @@ function NavbarContent({
 }
 
 function NotificationBell() {
+	const { status } = useSession()
+	const isAuthenticated = status === "authenticated"
+
 	const { data: unread = 0 } = trpc.notifications.unreadCount.useQuery(
 		undefined,
-		{ staleTime: 10_000, refetchInterval: 10_000 }
+		{
+			enabled: isAuthenticated,
+			staleTime: 10_000,
+			refetchInterval: 10_000
+		}
 	)
 	return (
 		<Link
