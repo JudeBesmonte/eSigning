@@ -4,6 +4,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Fragment } from "react"
 import { Bell, CheckCircle, Home, MenuIcon, Settings, User } from "lucide-react"
+import { useSession } from "next-auth/react"
 
 import { ModeToggle } from "@/core/components/mode-toggle"
 import { QuanbyLogo } from "@/core/components/quanby-logo"
@@ -193,10 +194,17 @@ export function SiteNavbar({ items }: SiteNavbarProps) {
 }
 
 function NotificationBell() {
+	const { status } = useSession()
+	const isAuthenticated = status === "authenticated"
+
 	// Lightweight unread count query; fallback to 0
 	const { data: unread = 0 } = trpc.notifications.unreadCount.useQuery(
 		undefined,
-		{ staleTime: 10_000, refetchInterval: 10_000 }
+		{
+			enabled: isAuthenticated,
+			staleTime: 10_000,
+			refetchInterval: 10_000
+		}
 	)
 	return (
 		<Link

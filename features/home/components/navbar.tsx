@@ -219,9 +219,16 @@ function NavbarContent({
 }
 
 function NotificationBell() {
+	const { status } = useSession()
+	const isAuthenticated = status === "authenticated"
+
 	const { data: unread = 0 } = trpc.notifications.unreadCount.useQuery(
 		undefined,
-		{ staleTime: 10_000, refetchInterval: 10_000 }
+		{
+			enabled: isAuthenticated,
+			staleTime: 10_000,
+			refetchInterval: 10_000
+		}
 	)
 	return (
 		<Link
