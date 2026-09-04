@@ -19,35 +19,35 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
-	title: "SnapSeal | Fast, Secure, Legally Binding Digital Signatures",
+	title: "E-Signing | Fast, Secure, Legally Binding Digital Signatures",
 	description:
-		"Sign documents online instantly with SnapSeal. Enjoy fast, secure, and legally binding e-signatures—no hassle, just signatures. Trusted by professionals.",
-	generator: "SnapSeal",
-	applicationName: "SnapSeal",
+		"Sign documents online instantly with E-Signing. Enjoy fast, secure, and legally binding e-signatures—no hassle, just signatures. Trusted by professionals.",
+	generator: "E-Signing",
+	applicationName: "E-Signing",
 	authors: [{ name: "Quanby Solutions, Inc.", url: "https://quanbyit.com" }],
 	creator: "Quanby Solutions, Inc.",
 	keywords: [
 		"e-signature",
 		"digital signature",
 		"sign documents online",
-		"SnapSeal",
+		"E-Signing",
 		"secure signing",
 		"legally binding",
 		"electronic signature"
 	],
 	metadataBase: new URL("https://snapseal.quanby.com"),
 	openGraph: {
-		title: "SnapSeal | Fast, Secure, Legally Binding Digital Signatures",
+		title: "E-Signing | Fast, Secure, Legally Binding Digital Signatures",
 		description:
-			"Sign documents online instantly with SnapSeal. Enjoy fast, secure, and legally binding e-signatures—no hassle, just signatures.",
+			"Sign documents online instantly with E-Signing. Enjoy fast, secure, and legally binding e-signatures—no hassle, just signatures.",
 		url: "https://snapseal.quanby.com",
-		siteName: "SnapSeal",
+		siteName: "E-Signing",
 		images: [
 			{
 				url: "/qsign.logo.png",
 				width: 1000,
 				height: 1000,
-				alt: "SnapSeal - Digitally Sign Documents"
+				alt: "E-Signing - Digitally Sign Documents"
 			}
 		],
 		locale: "en_US",
@@ -55,9 +55,9 @@ export const metadata: Metadata = {
 	},
 	twitter: {
 		card: "summary_large_image",
-		title: "SnapSeal | Fast, Secure, Legally Binding Digital Signatures",
+		title: "E-Signing | Fast, Secure, Legally Binding Digital Signatures",
 		description:
-			"Sign documents online instantly with SnapSeal. Enjoy fast, secure, and legally binding e-signatures—no hassle, just signatures.",
+			"Sign documents online instantly with E-Signing. Enjoy fast, secure, and legally binding e-signatures—no hassle, just signatures.",
 		images: ["/qsign.logo.png"]
 	}
 }

@@ -30,11 +30,11 @@ export function Footer() {
 						>
 							<QuanbyLogo className="!size-8" />
 							<span className="bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-xl font-bold leading-tight tracking-tight text-transparent">
-								SnapSeal
+								E-Signing
 							</span>
 						</Link>
 						<p className="leading-relaxed text-muted-foreground">
-							SnapSeal is a lightweight e-signature app focused on speed,
+							E-Signing is a lightweight e-signature app focused on speed,
 							simplicity, and privacy.
 						</p>
 					</MotionEffect>
@@ -161,7 +161,7 @@ export function Footer() {
 					className="mt-12 border-t border-border/40 pt-8 text-center"
 				>
 					<p className="text-sm text-muted-foreground">
-						&copy; {new Date().getFullYear()} SnapSeal. All rights reserved.
+						&copy; {new Date().getFullYear()} E-Signing. All rights reserved.
 					</p>
 				</MotionEffect>
 			</div>
