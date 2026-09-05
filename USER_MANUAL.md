@@ -2,7 +2,7 @@
 
 ## Welcome
 
-E-Sign System is a secure digital signature platform that makes document signing fast, easy, and legally binding. This guide will walk you through how to use our platform as either a document sender (requester) or a document signer.
+E-Signing System is a secure digital signature platform that makes document signing fast, easy, and legally binding. This guide will walk you through how to use our platform as either a document sender (requester) or a document signer.
 
 ---
 
